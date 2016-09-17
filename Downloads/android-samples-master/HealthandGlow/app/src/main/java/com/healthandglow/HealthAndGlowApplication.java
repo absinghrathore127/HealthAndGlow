@@ -7,6 +7,8 @@ import android.text.TextUtils;
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
 import com.android.volley.toolbox.Volley;
+import com.healthandglow.utils.AppConstants;
+
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 
@@ -23,6 +25,8 @@ public class HealthAndGlowApplication extends Application {
     private static HealthAndGlowApplication mInstance;
 
 
+    public static SharedPreferences countryCode_Prefs, launcherPrefs, docketPrefs;
+
     public static ArrayList<WeakReference<AppCompatActivity>> activity_stack = new ArrayList<>();
 
 
@@ -33,7 +37,8 @@ public class HealthAndGlowApplication extends Application {
 
         mInstance = this;
 
-
+       /* launcherPrefs = getSharedPreferences(AppConstants.LauncherPrefs, MODE_PRIVATE);
+        docketPrefs = getSharedPreferences(AppConstants.DocketPrefs, MODE_PRIVATE);*/
     }
 
     /**

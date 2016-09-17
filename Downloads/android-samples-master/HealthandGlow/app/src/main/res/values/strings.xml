@@ -1,3 +1,8 @@
 <resources>
     <string name="app_name">Health and Glow</string>
+    <string name="loading...">Loading &#8230;</string>
+    <string name="network_error">DATA CONNECTION UNAVAILABLE</string>
+    <string name="server_error">UNABLE TO REACH SERVER</string>
+    <string name="error_loading">Error Loading</string>
+    <string name="post_params">hngeCommerceWebservice/rest/product/categoryNew/HTTP/1.1/</string>
 </resources>
