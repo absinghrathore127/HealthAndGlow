@@ -12,10 +12,7 @@ import com.healthandglow.utils.AppConstants;
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 
-/**
- * @Author Abhimanyu singh on 9/17/2016.
- * @Company Docket Tech Solutions Pvt. Ltd.
- **/
+
 public class HealthAndGlowApplication extends Application {
 
     public static final String TAG = HealthAndGlowApplication.class.getSimpleName();
@@ -37,8 +34,6 @@ public class HealthAndGlowApplication extends Application {
 
         mInstance = this;
 
-       /* launcherPrefs = getSharedPreferences(AppConstants.LauncherPrefs, MODE_PRIVATE);
-        docketPrefs = getSharedPreferences(AppConstants.DocketPrefs, MODE_PRIVATE);*/
     }
 
     /**

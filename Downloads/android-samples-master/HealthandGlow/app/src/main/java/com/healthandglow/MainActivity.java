@@ -1,30 +1,22 @@
 package com.healthandglow;
 
 import android.app.ProgressDialog;
-import android.content.Context;
-import android.net.Uri;
-import android.os.PowerManager;
-import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.support.v4.widget.SwipeRefreshLayout;
+import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.GridLayoutManager;
+import android.support.v7.widget.RecyclerView;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
-import android.widget.Button;
-import android.widget.GridView;
-import android.widget.Toast;
+import android.widget.RelativeLayout;
 
 import com.android.volley.AuthFailureError;
-import com.android.volley.DefaultRetryPolicy;
-import com.android.volley.NetworkError;
-import com.android.volley.NoConnectionError;
-import com.android.volley.ParseError;
 import com.android.volley.Request;
-import com.android.volley.RequestQueue;
 import com.android.volley.Response;
-import com.android.volley.ServerError;
-import com.android.volley.TimeoutError;
 import com.android.volley.VolleyError;
 import com.android.volley.toolbox.JsonObjectRequest;
-import com.android.volley.toolbox.StringRequest;
 import com.android.volley.toolbox.Volley;
 import com.healthandglow.utils.AppConstants;
 
@@ -32,218 +24,85 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements SwipeRefreshLayout.OnRefreshListener {
     private ProgressDialog progressDialog;
-    private Button button;
-    JsonObjectRequest jsonObjRequest;
-    private RequestQueue mVolleyQueue;
+    public GridAdapter mAdapter;
+    public static SwipeRefreshLayout swipeLayout;
+    public static RecyclerView recyclerView;
+    public static GridLayoutManager gridLayoutManager;
+    public static ArrayList<FilesItem> filesArrayList;
+    public static RelativeLayout rl_no_files;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        Button button = (Button) findViewById(R.id.button);
-        button.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                //createVendor();
+
+        filesArrayList = new ArrayList<FilesItem>();
+
+        swipeLayout = (SwipeRefreshLayout) findViewById(R.id.swipe_container);
+        recyclerView = (RecyclerView) findViewById(R.id.recyclerView);
+        swipeLayout.setOnRefreshListener(this);
+        swipeLayout.setColorSchemeResources(android.R.color.holo_blue_bright, android.R.color.holo_green_light, android.R.color.holo_orange_light, android.R.color.holo_red_light);
+
+        gridLayoutManager = new GridLayoutManager(getApplicationContext(), 2);
+        gridLayoutManager.setSmoothScrollbarEnabled(true);
+        recyclerView.setLayoutManager(gridLayoutManager);
+        recyclerView.setHasFixedSize(true);
+        rl_no_files = (RelativeLayout) findViewById(R.id.rl_no_files);
+
+        try {
+            if (filesArrayList.size() == 0) {
+                rl_no_files.setVisibility(View.VISIBLE);
+                swipeLayout.setVisibility(View.GONE);
+
                 makeSampleHttpRequest();
+            } else {
+                mAdapter = new GridAdapter(getApplicationContext(), filesArrayList);
+                recyclerView.setAdapter(mAdapter);
+                rl_no_files.setVisibility(View.GONE);
+                swipeLayout.setVisibility(View.VISIBLE);
+                mAdapter.notifyDataSetChanged();
             }
-        });
-        /* GridView gridview = (GridView) findViewById(R.id.gridview);
-         gridview.setAdapter(new DataAdapter(this));*/
+        } catch (Exception e) {
+            e.printStackTrace();
+            rl_no_files.setVisibility(View.VISIBLE);
+            swipeLayout.setVisibility(View.GONE);
+            makeSampleHttpRequest();
+
+        }
+
 
         progressDialog = new ProgressDialog(this);
         progressDialog.setMessage(getString(R.string.loading___));
         progressDialog.setCancelable(false);
 
+
     }
 
-    /*public void getServicesTask() {
-       progressDialog.show();
 
-        StringRequest sr = new StringRequest(Request.Method.POST, AppConstants.SERVER_URL + "categoryNew?", new Response.Listener<String>() {
-            @Override
-            public void onResponse(String response) {
-                try {
-                    JSONObject response_obj = new JSONObject(response);
-                    if (response_obj.getString("status").equals("Success")) {
-                        if (response_obj.has("data")) {
-                            JSONObject result_obj = response_obj.getJSONObject("data");
-                            Log.d("servicesArray", "" + result_obj);
-                        }
-
-                    } else
-                        Toast.makeText(getApplicationContext(), R.string.error_loading, Toast.LENGTH_SHORT).show();
-                } catch (JSONException e) {
-                    e.printStackTrace();
-                }
-                progressDialog.dismiss();
-            }
-        },
-                new Response.ErrorListener() {
-                    @Override
-                    public void onErrorResponse(VolleyError error) {
-                        try {
-
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                        }
-
-                        progressDialog.dismiss();
-                        // for no internet error
-                        if (error instanceof NoConnectionError)
-                            Toast.makeText(getApplicationContext(), R.string.network_error, Toast.LENGTH_SHORT).show();
-                        else // for server error
-                            Toast.makeText(getApplicationContext(), R.string.server_error, Toast.LENGTH_SHORT).show();
-                    }
-                }) {
-            @Override
-            protected Map<String, String> getParams() {
-                Map<String, String> params = new HashMap<>();
-                params.put("appType", "ANDROID");
-                params.put("appVersion", "2.0.0.1");
-                params.put("batchSize", "20");
-                params.put("categoryId", "NAILPOLISH");
-                params.put("lastItemCount", "0");
-                params.put("pinNumber", "560103");
-
-                JSONObject filter = new JSONObject();
-                JSONObject selectedBrand = new JSONObject();
-                JSONObject selectedCategory = new JSONObject();
-                JSONObject selectedPrice = new JSONObject();
-                try {
-                    filter.put("selectedBrand", selectedBrand);
-                    filter.put("selectedCategory", selectedCategory);
-                    filter.put("selectedPrice", selectedPrice);
-                    params.put("filter", filter.toString());
-                } catch (JSONException e) {
-                    e.printStackTrace();
-                }
-                JSONObject sort = new JSONObject();
-                try {
-                    sort.put("sortBy", "");
-                    sort.put("sortOrder", "");
-                    params.put("sort", sort.toString());
-                } catch (JSONException e) {
-                    e.printStackTrace();
-                }
-
-                return params;
-            }
-        };
-
-        // Adding request to request queue
-        HealthAndGlowApplication.getInstance().addToRequestQueue(sr, "categoryNew");
-    }*/
-
-    // For calling Apply Coupon API
-    public void createVendor() {
-
-        progressDialog.show();
-
-        StringRequest sr = new StringRequest(Request.Method.POST, AppConstants.SERVER_URL + "categoryNew?", new Response.Listener<String>() {
-            @Override
-            public void onResponse(String response) {
-                try {
-
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-
-                progressDialog.dismiss();
-                try {
-                    JSONObject response_obj = new JSONObject(response);
-                    if (response_obj.getString("status").equals("Success")) {
-                        if (response_obj.has("data")) {
-                            JSONObject result_obj = response_obj.getJSONObject("data");
-                            Log.d("servicesArray", "" + result_obj);
-                        }
-
-                    } else
-                        Toast.makeText(getApplicationContext(), response_obj.getString("message"), Toast.LENGTH_SHORT).show();
-                } catch (JSONException e) {
-                    e.printStackTrace();
-                    Toast.makeText(getApplicationContext(), R.string.server_error, Toast.LENGTH_SHORT).show();
-                }
-            }
-        },
-                new Response.ErrorListener() {
-                    @Override
-                    public void onErrorResponse(VolleyError error) {
-                        try {
-
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                        }
-
-                        progressDialog.dismiss();
-                        // for no internet error
-                        if (error instanceof NoConnectionError)
-                            Toast.makeText(getApplicationContext(), R.string.network_error, Toast.LENGTH_SHORT).show();
-                        else // for server error
-                            Toast.makeText(getApplicationContext(), R.string.server_error, Toast.LENGTH_SHORT).show();
-                    }
-                }) {
-            @Override
-            protected Map<String, String> getParams() {
-                Map<String, String> params = new HashMap<>();
-                params.put("appType", "ANDROID");
-                params.put("appVersion", "2.0.0.1");
-                params.put("batchSize", "20");
-                params.put("categoryId", "NAILPOLISH");
-                params.put("lastItemCount", "0");
-                params.put("pinNumber", "560103");
-
-                JSONObject filter = new JSONObject();
-                JSONArray selectedBrand = new JSONArray();
-                JSONArray selectedCategory = new JSONArray();
-                JSONArray selectedPrice = new JSONArray();
-                try {
-                    filter.put("selectedBrand", selectedBrand);
-                    filter.put("selectedCategory", selectedCategory);
-                    filter.put("selectedPrice", selectedPrice);
-                    params.put("filter", filter.toString());
-                } catch (JSONException e) {
-                    e.printStackTrace();
-                }
-                JSONObject sort = new JSONObject();
-                try {
-                    sort.put("sortBy", "");
-                    sort.put("sortOrder", "");
-                    params.put("sort", sort.toString());
-                } catch (JSONException e) {
-                    e.printStackTrace();
-                }
-
-                return params;
-            }
-
-
-            @Override
-            public Map<String, String> getHeaders() throws AuthFailureError {
-                HashMap<String, String> headers = new HashMap<String, String>();
-                // do not add anything here
-                return headers;
-            }
-        };
-
-    // Adding request to request queue
-    HealthAndGlowApplication.getInstance().addToRequestQueue(sr, "categoryNew");
-}
     private void makeSampleHttpRequest() {
+        swipeLayout.setRefreshing(true);
+        String url = AppConstants.SERVER_URL;
 
-        String url = "http://119.81.82.197:9090/hngeCommerceWebservice/rest/product/categoryNew";
 
-        Map<String, String> params = new HashMap();
-        params.put("appType", "ANDROID");
-        params.put("appVersion", "2.0.0.1");
-        params.put("batchSize", "20");
-        params.put("categoryId", "NAILPOLISH");
-        params.put("lastItemCount", "0");
-        params.put("pinNumber", "560103");
+        JSONObject data = new JSONObject();
+
+        try {
+            data.put("appType", "ANDROID");
+            data.put("appVersion", "2.0.0.1");
+            data.put("batchSize", "20");
+            data.put("categoryId", "NAILPOLISH");
+            data.put("lastItemCount", "0");
+            data.put("pinNumber", "560103");
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+
 
         JSONObject filter = new JSONObject();
         JSONArray selectedBrand = new JSONArray();
@@ -253,7 +112,7 @@ public class MainActivity extends AppCompatActivity {
             filter.put("selectedBrand", selectedBrand);
             filter.put("selectedCategory", selectedCategory);
             filter.put("selectedPrice", selectedPrice);
-            params.put("filter", filter.toString());
+            data.put("filter", filter);
         } catch (JSONException e) {
             e.printStackTrace();
         }
@@ -261,18 +120,48 @@ public class MainActivity extends AppCompatActivity {
         try {
             sort.put("sortBy", "");
             sort.put("sortOrder", "");
-            params.put("sort", sort.toString());
+            data.put("sort", sort);
         } catch (JSONException e) {
             e.printStackTrace();
         }
 
-        JSONObject parameters = new JSONObject(params);
 
-        JsonObjectRequest jsonRequest = new JsonObjectRequest(Request.Method.POST, url, parameters, new Response.Listener<JSONObject>() {
+        JsonObjectRequest jsonRequest = new JsonObjectRequest(Request.Method.POST, url, data, new Response.Listener<JSONObject>() {
 
             @Override
             public void onResponse(JSONObject response) {
                 //TODO: handle success
+                try {
+                    if (response.getString("status").equals("Success")) {
+                        if (response.has("data")) {
+                            // For getting datalist
+                            JSONObject dataArray = response.getJSONObject("data");
+                            JSONArray filesArray = dataArray.getJSONArray("skuItems");
+
+                            if (!filesArray.toString().equals("[]")) {
+                                for (int o = 0; o < filesArray.length(); o++) {
+                                    FilesItem file = new FilesItem();
+                                    file.setSkuName(filesArray.getJSONObject(o).getString("skuName"));
+                                    file.setSkuPrice(filesArray.getJSONObject(o).getString("skuPrice"));
+                                    file.setSkuOfferPrice(filesArray.getJSONObject(o).getString("skuOfferPrice"));
+                                    Log.d("files are", "" + file.getSkuName());
+                                    JSONArray imagesArray = filesArray.getJSONObject(o).getJSONArray("skuImageUrls");
+                                    file.setPhoto(imagesArray.getString(0));
+                                    Log.d("skuImageUrls are", "" + file.getPhoto());
+                                    filesArrayList.add(file);
+                                }
+                                mAdapter = new GridAdapter(getApplicationContext(), filesArrayList);
+                                recyclerView.setAdapter(mAdapter);
+                                mAdapter.notifyDataSetChanged();
+                                rl_no_files.setVisibility(View.GONE);
+                                swipeLayout.setVisibility(View.VISIBLE);
+                            }
+                        }
+                    }
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+                swipeLayout.setRefreshing(false);
             }
         }, new Response.ErrorListener() {
             @Override
@@ -281,7 +170,7 @@ public class MainActivity extends AppCompatActivity {
                 //TODO: handle failure
             }
 
-        }){
+        }) {
 
             @Override
             public Map<String, String> getHeaders() throws AuthFailureError {
@@ -291,10 +180,36 @@ public class MainActivity extends AppCompatActivity {
 
                 return headers;
             }
-            };
+        };
 
 
         Volley.newRequestQueue(this).add(jsonRequest);
     }
 
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        // Inflate the menu; this adds items to the action bar if it is present.
+        // getMenuInflater().inflate(R.menu.menu_main, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        // Handle action bar item clicks here. The action bar will
+        // automatically handle clicks on the Home/Up button, so long
+        // as you specify a parent activity in AndroidManifest.xml.
+        int id = item.getItemId();
+
+        //noinspection SimplifiableIfStatement
+       /* if (id == R.id.action_settings) {
+            return true;
+        }*/
+
+        return super.onOptionsItemSelected(item);
+    }
+
+    @Override
+    public void onRefresh() {
+        makeSampleHttpRequest();
+    }
 }
